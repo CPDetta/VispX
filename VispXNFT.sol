@@ -1382,8 +1382,7 @@ contract VispXNFT is Ownable, ERC1155, MinterAccess, INftCollection {
     string public name;
     string public symbol;
     string public baseURI;
-    uint256 Test;
-    
+
     constructor() ERC1155("AAAAAAAAAAAA") {
         name = "TTTT";
         symbol = "VVVVV";
