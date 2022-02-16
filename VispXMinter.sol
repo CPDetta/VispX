@@ -767,7 +767,8 @@ contract VispXMinter is NftMintingStation, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    uint256 public constant PAWN_PRICE = 100000000000000000; //0.1 USDC
+    uint256 public constant PAWN_PRICE = 100000000000000000; // 0.1 USDC
+    uint256 public constant KING_PRICE = 1000000000000000000; // 1 USDC
     uint256 public NET_PRICE;
     bool public saleIsActive = true;
     bool public PublicsaleIsActive = true;
@@ -806,7 +807,7 @@ contract VispXMinter is NftMintingStation, Ownable {
 
     function SetMintLimit(uint256[] memory ids, uint256[] memory mintLimit) public onlyOwner {
         for (uint256 i = 0; i < ids.length; i++) {
-             _MaxMint[i] = mintLimit[i];
+             _MaxMint[ids[i]] = mintLimit[i];
         }      
     }
 
@@ -881,8 +882,8 @@ contract VispXMinter is NftMintingStation, Ownable {
         if(PublicUpgradeIsActive == false) {
             require(_WL > 0, "You're not in WhiteList");
         }
-        require(_TokenSupply[4].add(1) <= _MaxSupply[4], "ERC1155: BISHOP NFT excess the total limit");
-        require(_TokenSupply[4].add(1) <= _MaxMint[4], "ERC1155: BISHOP NFT excess the mint limit");
+        require(_TokenSupply[4].add(1) <= _MaxSupply[4], "ERC1155: QUEEN NFT excess the total limit");
+        require(_TokenSupply[4].add(1) <= _MaxMint[4], "ERC1155: QUEEN NFT excess the mint limit");
         require(UpgradeIsActive, "Upgrade is not active at the moment");
         _burn(msg.sender, 5, 50); //burn PAWN NFT (TokenID: 5) for 50 NFT
         _burn(msg.sender, 3, 1); //burn BISHOP NFT (TokenID: 3) for 1 NFT
@@ -894,17 +895,18 @@ contract VispXMinter is NftMintingStation, Ownable {
         uint256 _amount,
         uint256 _WL,
         bytes memory _data
-    ) public payable {
+    ) external {
         if(PublicsaleIsActive == false) {
             require(_WL > 0, "You're not in WhiteList");
         }
-        if (_WL == 1) NET_PRICE = (PAWN_PRICE * (100 - 10))/100;  // WL = 1 mean 10% Discount
-        else if (_WL == 2) NET_PRICE = (PAWN_PRICE * (100 - 20))/100;  // WL = 2 mean 20% Discount
-        else NET_PRICE = (PAWN_PRICE * (100 - 0))/100;  // WL = any mean 0% Discount
+        if (_WL == 1) NET_PRICE = (KING_PRICE * (100 - 10))/100;  // WL = 1 mean 10% Discount
+        else if (_WL == 2) NET_PRICE = (KING_PRICE * (100 - 20))/100;  // WL = 2 mean 20% Discount
+        else NET_PRICE = (KING_PRICE * (100 - 0))/100;  // WL = any mean 0% Discount
 
-        require(saleIsActive, "Sale is not active at the moment");
-        require(_TokenSupply[1].add(_amount) <= _MaxSupply[1], "ERC1155: KING NFT excess the total limit");
-        require(NET_PRICE * _amount <= msg.value, "Sent ether value is incorrect");
+        uint256 userBalance = USDC.balanceOf(msg.sender);
+        uint256 totalCost = NET_PRICE * _amount;
+        require(totalCost <= userBalance, "User balance is not enough");
+        USDC.safeTransferFrom(msg.sender, address(this), totalCost);
         _mint(msg.sender, 1, _amount, _data); //mint KING NFT (TokenID: 1) to user wallet
         _TokenSupply[1] += _amount; //increase total supply of KING NFT (TokenID: 1)
     }
@@ -915,5 +917,9 @@ contract VispXMinter is NftMintingStation, Ownable {
 
     function MaxSupply(uint256 _id) public view returns(uint256) {
         return _MaxSupply[_id];
+    }
+
+    function MaxMint(uint256 _id) public view returns(uint256) {
+        return _MaxMint[_id];
     }
 }

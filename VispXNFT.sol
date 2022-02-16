@@ -1383,10 +1383,10 @@ contract VispXNFT is Ownable, ERC1155, MinterAccess, INftCollection {
     string public symbol;
     string public baseURI;
 
-    constructor() ERC1155("AAAAAAAAAAAA") {
-        name = "TTTT";
-        symbol = "VVVVV";
-        baseURI = "AAAAAAAAAAAA"; //"https://ipfs.io/ipfs/QmXZHtDaUsifGPZjyZ986BXNrw3E43YQQQFaLKJzA7Uy5R";
+    constructor() ERC1155("https://ipfs.io/ipfs/QmXZHtDaUsifGPZjyZ986BXNrw3E43YQQQFaLKJzA7Uy5R") {
+        name = "VispX NFT";
+        symbol = "VispX";
+        baseURI = "https://ipfs.io/ipfs/QmXZHtDaUsifGPZjyZ986BXNrw3E43YQQQFaLKJzA7Uy5R";
         _MaxSupply[1] = 200;
         _MaxSupply[2] = 3000;
         _MaxSupply[3] = 1500;
