@@ -709,16 +709,15 @@ library SafeERC20 {
 pragma solidity ^0.8.0;
 
 interface INftCollection {
-
-    /**
+     /**
      * @dev Returns the current supply
      */
-    function TotalSupply() external view returns (uint256);
+    function totalSupply() external view returns (uint256);
 
     /**
      * @dev Returns the max total supply
      */
-    function MaxSupply() external view returns (uint256);
+    function maxSupply() external view returns (uint256);
 
     /**
      * @dev Mint NFTs from the NFT contract.
@@ -764,6 +763,7 @@ contract VispXMinter is NftMintingStation, Ownable {
     uint256 public MaxSupply;
     uint256 public TotalSupply;
     uint256 public TokenID;
+    uint256[11] public Test;
 
     uint256[11] public _MaxClassSupply = [500,750,750,1000,1000,1000,1000,1000,1000,1000,1000];
     uint256[11] public _TokenClassID = [0,500,1250,2000,3000,4000,5000,6000,7000,8000,9000];
@@ -787,9 +787,9 @@ contract VispXMinter is NftMintingStation, Ownable {
         USDC.safeTransfer(owner(), USDC.balanceOf(address(this)));
     }
 
-    function _SyncTokenSupply() external onlyOwner {
-        MaxSupply = nftCollection.MaxSupply();
-        TotalSupply = nftCollection.TotalSupply();
+    function SyncTokenSupply() external onlyOwner {
+        MaxSupply = nftCollection.maxSupply();
+        TotalSupply = nftCollection.totalSupply();
     }
 
     function mint(
@@ -812,13 +812,14 @@ contract VispXMinter is NftMintingStation, Ownable {
         for (uint256 i = 0; i < _quantity; i++)
         {
             TokenID = getNextTokenId();
+            Test[i] = TokenID;
             _mint(msg.sender, TokenID);
             TotalSupply += 1;  
         }  
     }
 
     function getRandomNumber() private returns(uint256 index){
-        uint256 randomClass = (uint256(keccak256(abi.encode(block.difficulty, block.timestamp, blockhash(block.number))))).mod(11);
+        uint256 randomClass = (uint256(keccak256(abi.encode(block.difficulty, TotalSupply, blockhash(block.number))))).mod(11);
         
         if(_MaxClassSupply[randomClass] > _TotalClassSupply[randomClass]) {
             _TotalClassSupply[randomClass] += 1;

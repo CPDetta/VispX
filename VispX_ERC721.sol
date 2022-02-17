@@ -1156,12 +1156,12 @@ interface INftCollection {
      /**
      * @dev Returns the current supply
      */
-    function TotalSupply() external view returns (uint256);
+    function totalSupply() external view returns (uint256);
 
     /**
      * @dev Returns the max total supply
      */
-    function MaxSupply() external view returns (uint256);
+    function maxSupply() external view returns (uint256);
 
     /**
      * @dev Mint NFTs from the NFT contract.
