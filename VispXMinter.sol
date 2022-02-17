@@ -711,24 +711,19 @@ pragma solidity ^0.8.0;
 interface INftCollection {
 
     /**
+     * @dev Returns the current supply
+     */
+    function TotalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the max total supply
+     */
+    function MaxSupply() external view returns (uint256);
+
+    /**
      * @dev Mint NFTs from the NFT contract.
      */
-    function mint(address _to, uint256 _id, uint256 _amount, bytes memory _data) external;
-
-    /**
-     * @dev Burn NFTs .
-     */
-    function burnFromMinter(address _from, uint256 _id, uint256 _amount) external;
-
-    /**
-     * @dev Returns the Current total supply
-     */
-    function TokenSupply(uint256 _id) external view returns (uint256);
-
-    /**
-     * @dev Returns the Max total supply
-     */
-    function MaxSupply(uint256 _id) external view returns (uint256);
+    function mint(address _to, uint256 _tokenID) external;
 }
 
 
@@ -745,13 +740,9 @@ contract NftMintingStation {
     }
 
 
-    function _mint(address _to, uint256 _id, uint256 _amount, bytes memory _data) internal {
-        nftCollection.mint(_to, _id, _amount, _data);
+    function _mint(address _to, uint256 _TokenID) internal {
+        nftCollection.mint(_to, _TokenID);
     }
-
-    function _burn(address _from, uint256 _id, uint256 _amount) internal {
-        nftCollection.burnFromMinter(_from, _id, _amount);
-    }   
 }
 
 pragma solidity ^0.8.0;
@@ -770,18 +761,18 @@ contract VispXMinter is NftMintingStation, Ownable {
     bool public saleIsActive = true;
     bool public PublicsaleIsActive = true;
     IERC20 public USDC; // USDC token
-    uint256 public _MaxSupply;
-    uint256 public _AvailableSupply;
-    uint256 public _TotalSupply;
+    uint256 public MaxSupply;
+    uint256 public TotalSupply;
     uint256 public TokenID;
-    uint256[100] public _TokenID;
+
+    uint256[11] public _MaxClassSupply = [500,750,750,1000,1000,1000,1000,1000,1000,1000,1000];
+    uint256[11] public _TokenClassID = [0,500,1250,2000,3000,4000,5000,6000,7000,8000,9000];
+    uint256[11] public _TotalClassSupply;
 
     mapping(uint256 => uint256) private _tokenIdsCache;
 
     constructor(INftCollection _collection, IERC20 _TokenAddress) NftMintingStation(_collection) {
         USDC = _TokenAddress;
-        _MaxSupply = 100;
-        _AvailableSupply = 100;
     }
 
     function flipSaleState() public onlyOwner {
@@ -796,17 +787,14 @@ contract VispXMinter is NftMintingStation, Ownable {
         USDC.safeTransfer(owner(), USDC.balanceOf(address(this)));
     }
 
-    //function _SyncTokenSupply() external onlyOwner {
-        //for (uint i = 1; i < 6; i++) {
-            //_TokenSupply[i] = nftCollection.TokenSupply(i);
-            //_MaxSupply[i] = nftCollection.MaxSupply(i);
-        //}    
-    //}
+    function _SyncTokenSupply() external onlyOwner {
+        MaxSupply = nftCollection.MaxSupply();
+        TotalSupply = nftCollection.TotalSupply();
+    }
 
     function mint(
-        uint256 _amount,
-        uint256 _WL,
-        bytes memory _data //0x1000000000000000000000000000000000000000000000000000000000000000
+        uint256 _quantity,
+        uint256 _WL
     ) external {       
         if(PublicsaleIsActive == false) {
             require(_WL > 0, "You're not in WhiteList");
@@ -817,24 +805,41 @@ contract VispXMinter is NftMintingStation, Ownable {
         else if (_WL == 2) NET_PRICE = (NFT_PRICE * (100 - 20))/100;  // WL = 2 mean 20% Discount
         else NET_PRICE = (NFT_PRICE * (100 - 0))/100;  // WL = any mean 0% Discount
 
-        uint256 userBalance = USDC.balanceOf(msg.sender);
-        uint256 totalCost = NET_PRICE * _amount;
-        require(totalCost <= userBalance, "User balance is not enough");
-        USDC.safeTransferFrom(msg.sender, address(this), totalCost);
-        _mint(msg.sender, 5, _amount, _data);
-        //_TokenSupply[5] += _amount; //increase total supply of PAWN NFT (TokenID: 5)
+        //uint256 userBalance = USDC.balanceOf(msg.sender);
+        //uint256 totalCost = NET_PRICE * _quantity;
+        //require(totalCost <= userBalance, "User balance is not enough");
+        //USDC.safeTransferFrom(msg.sender, address(this), totalCost);
+        for (uint256 i = 0; i < _quantity; i++)
+        {
+            TokenID = getNextTokenId();
+            _mint(msg.sender, TokenID);
+            TotalSupply += 1;  
+        }  
     }
 
     function getRandomNumber() private returns(uint256 index){
-        uint256 i = _MaxSupply.add(uint256(keccak256(abi.encode(block.difficulty, block.timestamp, blockhash(block.number))))).mod(10);
-        _AvailableSupply -= 1;
-        index = i;
+        uint256 randomClass = (uint256(keccak256(abi.encode(block.difficulty, block.timestamp, blockhash(block.number))))).mod(11);
+        
+        if(_MaxClassSupply[randomClass] > _TotalClassSupply[randomClass]) {
+            _TotalClassSupply[randomClass] += 1;
+            _TokenClassID[randomClass] += 1;
+            index = _TokenClassID[randomClass];
+        }
+        else
+        {
+            for (uint i = 0; i < 11; i++) 
+            {
+                if(_MaxClassSupply[9 - i] > _TotalClassSupply[9 - i]) {
+                    _TotalClassSupply[9 - i] += 1;
+                    _TokenClassID[9 - i] += 1;
+                    index = _TokenClassID[9 - i];
+                    break;
+                }
+            }
+        }
     }
 
-    function getNextTokenId() external returns (uint256 index) {
-        _TokenID[_TotalSupply] = getRandomNumber() + 1;
-        _TotalSupply += 1;
-        TokenID = getRandomNumber() + 1;
-        return getRandomNumber() + 1;
+    function getNextTokenId() internal returns (uint256 index) {     
+        return getRandomNumber();
     }
 }
