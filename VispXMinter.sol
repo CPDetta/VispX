@@ -738,9 +738,7 @@ pragma solidity ^0.8.0;
  */
 contract NftMintingStation {
 
-    INftCollection public nftCollection;
-
-    
+    INftCollection public nftCollection;  
 
     constructor(INftCollection _nftCollection) {
         nftCollection = _nftCollection;
@@ -767,26 +765,23 @@ contract VispXMinter is NftMintingStation, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    uint256 public constant PAWN_PRICE = 100000000000000000; // 0.1 USDC
-    uint256 public constant KING_PRICE = 1000000000000000000; // 1 USDC
+    uint256 public constant NFT_PRICE = 1000000000000000000; // 1 USDC
     uint256 public NET_PRICE;
     bool public saleIsActive = true;
     bool public PublicsaleIsActive = true;
-    bool public UpgradeIsActive = true;
-    bool public PublicUpgradeIsActive = true;
     IERC20 public USDC; // USDC token
+    uint256 public _MaxSupply;
+    uint256 public _AvailableSupply;
+    uint256 public _TotalSupply;
+    uint256 public TokenID;
+    uint256[100] public _TokenID;
 
-    // Mapping TokenID with Token Supply
-    mapping(uint256 => uint256) private _TokenSupply;
-
-    // Mapping TokenID with Token Supply
-    mapping(uint256 => uint256) private _MaxSupply;
-
-    // Mapping TokenID with Token mint Limit
-    mapping(uint256 => uint256) private _MaxMint;
+    mapping(uint256 => uint256) private _tokenIdsCache;
 
     constructor(INftCollection _collection, IERC20 _TokenAddress) NftMintingStation(_collection) {
         USDC = _TokenAddress;
+        _MaxSupply = 100;
+        _AvailableSupply = 100;
     }
 
     function flipSaleState() public onlyOwner {
@@ -797,32 +792,18 @@ contract VispXMinter is NftMintingStation, Ownable {
         PublicsaleIsActive = !PublicsaleIsActive;
     }
 
-    function flipUpgradeState() public onlyOwner {
-        UpgradeIsActive = !UpgradeIsActive;
-    }
-
-    function flipPublicUpgradeState() public onlyOwner {
-        PublicUpgradeIsActive = !PublicUpgradeIsActive;
-    }
-
-    function SetMintLimit(uint256[] memory ids, uint256[] memory mintLimit) public onlyOwner {
-        for (uint256 i = 0; i < ids.length; i++) {
-             _MaxMint[ids[i]] = mintLimit[i];
-        }      
-    }
-
     function withdraw() external onlyOwner {
         USDC.safeTransfer(owner(), USDC.balanceOf(address(this)));
     }
 
-    function _SyncTokenSupply() external onlyOwner {
-        for (uint i = 1; i < 6; i++) {
-            _TokenSupply[i] = nftCollection.TokenSupply(i);
-            _MaxSupply[i] = nftCollection.MaxSupply(i);
-        }    
-    }
+    //function _SyncTokenSupply() external onlyOwner {
+        //for (uint i = 1; i < 6; i++) {
+            //_TokenSupply[i] = nftCollection.TokenSupply(i);
+            //_MaxSupply[i] = nftCollection.MaxSupply(i);
+        //}    
+    //}
 
-    function mintPAWN(
+    function mint(
         uint256 _amount,
         uint256 _WL,
         bytes memory _data //0x1000000000000000000000000000000000000000000000000000000000000000
@@ -832,94 +813,28 @@ contract VispXMinter is NftMintingStation, Ownable {
         }
         require(saleIsActive, 'Sale is not active at the moment');
 
-        if (_WL == 1) NET_PRICE = (PAWN_PRICE * (100 - 10))/100;  // WL = 1 mean 10% Discount
-        else if (_WL == 2) NET_PRICE = (PAWN_PRICE * (100 - 20))/100;  // WL = 2 mean 20% Discount
-        else NET_PRICE = (PAWN_PRICE * (100 - 0))/100;  // WL = any mean 0% Discount
+        if (_WL == 1) NET_PRICE = (NFT_PRICE * (100 - 10))/100;  // WL = 1 mean 10% Discount
+        else if (_WL == 2) NET_PRICE = (NFT_PRICE * (100 - 20))/100;  // WL = 2 mean 20% Discount
+        else NET_PRICE = (NFT_PRICE * (100 - 0))/100;  // WL = any mean 0% Discount
 
         uint256 userBalance = USDC.balanceOf(msg.sender);
         uint256 totalCost = NET_PRICE * _amount;
         require(totalCost <= userBalance, "User balance is not enough");
         USDC.safeTransferFrom(msg.sender, address(this), totalCost);
         _mint(msg.sender, 5, _amount, _data);
-        _TokenSupply[5] += _amount; //increase total supply of PAWN NFT (TokenID: 5)
+        //_TokenSupply[5] += _amount; //increase total supply of PAWN NFT (TokenID: 5)
     }
 
-    function upgradeKNIGHT(
-        uint256 _WL,
-        bytes memory _data
-    ) public {
-        if(PublicUpgradeIsActive == false) {
-            require(_WL > 0, "You're not in WhiteList");
-        }
-        require(_TokenSupply[2].add(1) <= _MaxSupply[2], "ERC1155: KNIGHT NFT excess the total limit");
-        require(_TokenSupply[2].add(1) <= _MaxMint[2], "ERC1155: KNIGHT NFT excess the mint limit");
-        require(UpgradeIsActive, "Upgrade is not active at the moment");
-        _burn(msg.sender, 5, 35); //burn PAWN NFT (TokenID: 5) for 35 NFT
-        _mint(msg.sender, 2, 1, _data); //mint KNIGHT NFT (TokenID: 2) to user wallet
-        _TokenSupply[2] += 1; //increase total supply of KNIGHT NFT (TokenID: 2)
+    function getRandomNumber() private returns(uint256 index){
+        uint256 i = _MaxSupply.add(uint256(keccak256(abi.encode(block.difficulty, block.timestamp, blockhash(block.number))))).mod(10);
+        _AvailableSupply -= 1;
+        index = i;
     }
 
-    function upgradeBISHOP(
-        uint256 _WL,
-        bytes memory _data
-    ) public {
-        if(PublicUpgradeIsActive == false) {
-            require(_WL > 0, "You're not in WhiteList");
-        }
-        require(_TokenSupply[3].add(1) <= _MaxSupply[3], "ERC1155: BISHOP NFT excess the total limit");
-        require(_TokenSupply[3].add(1) <= _MaxMint[3], "ERC1155: BISHOP NFT excess the mint limit");
-        require(UpgradeIsActive, "Upgrade is not active at the moment");
-        _burn(msg.sender, 5, 15); //burn PAWN NFT (TokenID: 5) for 15 NFT
-        _burn(msg.sender, 2, 1); //burn KNIGHT NFT (TokenID: 2) for 1 NFT
-        _mint(msg.sender, 3, 1, _data); //mint BISHOP NFT (TokenID: 3) to user wallet
-        _TokenSupply[3] += 1; //increase total supply of BISHOP NFT (TokenID: 3)
-    }
-
-    function upgradeQUEEN(
-        uint256 _WL,
-        bytes memory _data
-    ) public {
-        if(PublicUpgradeIsActive == false) {
-            require(_WL > 0, "You're not in WhiteList");
-        }
-        require(_TokenSupply[4].add(1) <= _MaxSupply[4], "ERC1155: QUEEN NFT excess the total limit");
-        require(_TokenSupply[4].add(1) <= _MaxMint[4], "ERC1155: QUEEN NFT excess the mint limit");
-        require(UpgradeIsActive, "Upgrade is not active at the moment");
-        _burn(msg.sender, 5, 50); //burn PAWN NFT (TokenID: 5) for 50 NFT
-        _burn(msg.sender, 3, 1); //burn BISHOP NFT (TokenID: 3) for 1 NFT
-        _mint(msg.sender, 4, 1, _data); //mint QUEEN NFT (TokenID: 4) to user wallet
-        _TokenSupply[4] += 1; //increase total supply of QUEEN NFT (TokenID: 4)
-    }
-
-    function mintKING(
-        uint256 _amount,
-        uint256 _WL,
-        bytes memory _data
-    ) external {
-        if(PublicsaleIsActive == false) {
-            require(_WL > 0, "You're not in WhiteList");
-        }
-        if (_WL == 1) NET_PRICE = (KING_PRICE * (100 - 10))/100;  // WL = 1 mean 10% Discount
-        else if (_WL == 2) NET_PRICE = (KING_PRICE * (100 - 20))/100;  // WL = 2 mean 20% Discount
-        else NET_PRICE = (KING_PRICE * (100 - 0))/100;  // WL = any mean 0% Discount
-
-        uint256 userBalance = USDC.balanceOf(msg.sender);
-        uint256 totalCost = NET_PRICE * _amount;
-        require(totalCost <= userBalance, "User balance is not enough");
-        USDC.safeTransferFrom(msg.sender, address(this), totalCost);
-        _mint(msg.sender, 1, _amount, _data); //mint KING NFT (TokenID: 1) to user wallet
-        _TokenSupply[1] += _amount; //increase total supply of KING NFT (TokenID: 1)
-    }
-
-    function TokenSupply(uint256 _id) public view returns(uint256) {
-        return _TokenSupply[_id];
-    }
-
-    function MaxSupply(uint256 _id) public view returns(uint256) {
-        return _MaxSupply[_id];
-    }
-
-    function MaxMint(uint256 _id) public view returns(uint256) {
-        return _MaxMint[_id];
+    function getNextTokenId() external returns (uint256 index) {
+        _TokenID[_TotalSupply] = getRandomNumber() + 1;
+        _TotalSupply += 1;
+        TokenID = getRandomNumber() + 1;
+        return getRandomNumber() + 1;
     }
 }

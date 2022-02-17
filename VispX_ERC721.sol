@@ -1172,12 +1172,7 @@ interface INftCollection {
 
 pragma solidity ^0.8.0;
 
-/**
- * @title MetaPopit
- * @notice MetaPopit ERC721 NFT collection
- * https://www.metapopit.com
- */
-contract MetaPopit is Ownable, ERC721, MinterAccess {
+contract VispXNFT is Ownable, ERC721, MinterAccess {
     using Strings for uint256;
     using Counters for Counters.Counter;
 
@@ -1192,10 +1187,9 @@ contract MetaPopit is Ownable, ERC721, MinterAccess {
 
     /**
      * @notice Constructor
-     * @param _maxSupply: NFT max totalSupply
      */
-    constructor(uint256 _maxSupply) ERC721("MetaPopit", "METAPOPIT") {
-        maxSupply = _maxSupply;
+    constructor() ERC721("V_Test", "Test") {
+        maxSupply = 10000;
     }
 
     /**
