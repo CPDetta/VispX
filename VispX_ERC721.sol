@@ -1189,7 +1189,7 @@ contract VispXNFT is Ownable, ERC721, MinterAccess {
      * @notice Constructor
      */
     constructor() ERC721("V_Test", "Test") {
-        maxSupply = 10000;
+        maxSupply = 6000;
     }
 
     /**

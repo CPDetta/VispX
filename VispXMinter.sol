@@ -763,11 +763,11 @@ contract VispXMinter is NftMintingStation, Ownable {
     uint256 public MaxSupply;
     uint256 public TotalSupply;
     uint256 public TokenID;
-    uint256[11] public Test;
+    uint256[20] public Test;
 
-    uint256[11] public _MaxClassSupply = [500,750,750,1000,1000,1000,1000,1000,1000,1000,1000];
-    uint256[11] public _TokenClassID = [0,500,1250,2000,3000,4000,5000,6000,7000,8000,9000];
-    uint256[11] public _TotalClassSupply;
+    uint256[20] public _MaxClassSupply = [240,219,236,252,236,252,236,249,231,231,231,260,231,260,231,231,260,231,260,223];
+    uint256[20] public _TokenClassID = [1,301,520,756,1008,1244,1496,1732,2401,2632,2863,3094,3354,3585,3845,4076,4307,4567,4798,5058];
+    uint256[20] public _TotalClassSupply;
 
     mapping(uint256 => uint256) private _tokenIdsCache;
 
@@ -811,7 +811,7 @@ contract VispXMinter is NftMintingStation, Ownable {
         //USDC.safeTransferFrom(msg.sender, address(this), totalCost);
         for (uint256 i = 0; i < _quantity; i++)
         {
-            TokenID = getNextTokenId();
+            TokenID = getTokenId();
             Test[i] = TokenID;
             _mint(msg.sender, TokenID);
             TotalSupply += 1;  
@@ -819,28 +819,28 @@ contract VispXMinter is NftMintingStation, Ownable {
     }
 
     function getRandomNumber() private returns(uint256 index){
-        uint256 randomClass = (uint256(keccak256(abi.encode(block.difficulty, TotalSupply, blockhash(block.number))))).mod(11);
+        uint256 randomClass = (uint256(keccak256(abi.encode(block.difficulty, TotalSupply, blockhash(block.number))))).mod(20);
         
-        if(_MaxClassSupply[randomClass] > _TotalClassSupply[randomClass]) {
-            _TotalClassSupply[randomClass] += 1;
-            _TokenClassID[randomClass] += 1;
+        if(_MaxClassSupply[randomClass] > _TotalClassSupply[randomClass]) {            
             index = _TokenClassID[randomClass];
+            _TotalClassSupply[randomClass] += 1;  
+            _TokenClassID[randomClass] += 1;
         }
         else
         {
-            for (uint i = 0; i < 11; i++) 
+            for (uint i = 0; i < 20; i++) 
             {
-                if(_MaxClassSupply[9 - i] > _TotalClassSupply[9 - i]) {
-                    _TotalClassSupply[9 - i] += 1;
-                    _TokenClassID[9 - i] += 1;
-                    index = _TokenClassID[9 - i];
+                if(_MaxClassSupply[19 - i] > _TotalClassSupply[19 - i]) {      
+                    index = _TokenClassID[19 - i];
+                    _TotalClassSupply[19 - i] += 1;
+                    _TokenClassID[19 - i] += 1;
                     break;
                 }
             }
         }
     }
 
-    function getNextTokenId() internal returns (uint256 index) {     
+    function getTokenId() internal returns (uint256 index) {     
         return getRandomNumber();
     }
 }
