@@ -762,14 +762,14 @@ contract VispXMinter is NftMintingStation, Ownable {
     IERC20 public USDC; // USDC token
     uint256 public MaxSupply;
     uint256 public TotalSupply;
+    uint256 public MaxMint = 10;
     uint256 public TokenID;
-    uint256[20] public Test;
 
     uint256[20] public _MaxClassSupply = [240,219,236,252,236,252,236,249,231,231,231,260,231,260,231,231,260,231,260,223];
     uint256[20] public _TokenClassID = [1,301,520,756,1008,1244,1496,1732,2401,2632,2863,3094,3354,3585,3845,4076,4307,4567,4798,5058];
     uint256[20] public _TotalClassSupply;
 
-    mapping(uint256 => uint256) private _tokenIdsCache;
+    mapping(address => uint256) private UserMints;
 
     constructor(INftCollection _collection, IERC20 _TokenAddress) NftMintingStation(_collection) {
         USDC = _TokenAddress;
@@ -796,8 +796,10 @@ contract VispXMinter is NftMintingStation, Ownable {
         uint256 _quantity,
         uint256 _WL
     ) external {       
+        require (TotalSupply.add(_quantity) <= MaxSupply, "ERC721: Supply over the supply limit");
+        require (UserMints[msg.sender].add(_quantity) <= MaxMint, "ERC721: Mint exceed the limit per wallet");
         if(PublicsaleIsActive == false) {
-            require(_WL > 0, "You're not in WhiteList");
+            require(_WL > 0, "ERC721: You're not in WhiteList");
         }
         require(saleIsActive, 'Sale is not active at the moment');
 
@@ -812,9 +814,9 @@ contract VispXMinter is NftMintingStation, Ownable {
         for (uint256 i = 0; i < _quantity; i++)
         {
             TokenID = getTokenId();
-            Test[i] = TokenID;
             _mint(msg.sender, TokenID);
-            TotalSupply += 1;  
+            TotalSupply += 1;
+            UserMints[msg.sender] += 1;
         }  
     }
 
